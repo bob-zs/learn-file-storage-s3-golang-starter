@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
 	"github.com/google/uuid"
@@ -52,11 +49,10 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	ext := mediaTypeToExt(mediaType)
-	filename := fmt.Sprintf("%s.%s", videoID, ext)
-	localPath := filepath.Join(cfg.assetsRoot, filename)
+	filename := getAssetPath(mediaType)
+	assetDiskPath := cfg.getAssetDiskPath(filename)
 
-	destFile, err := os.Create(localPath)
+	destFile, err := os.Create(assetDiskPath)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not create local thumbnail file", err)
 		return
@@ -78,7 +74,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	thumbnailURL := cfg.getAssetURL(localPath)
+	thumbnailURL := cfg.getAssetURL(filename)
 	videoDB.ThumbnailURL = &thumbnailURL
 	err = cfg.db.UpdateVideo(videoDB)
 	if err != nil {
@@ -87,16 +83,4 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	}
 
 	respondWithJSON(w, http.StatusOK, videoDB)
-}
-
-func (cfg apiConfig) getAssetURL(assetPath string) string {
-	return fmt.Sprintf("http://localhost:%s/%s", cfg.port, assetPath)
-}
-
-func mediaTypeToExt(mediaType string) string {
-	parts := strings.Split(mediaType, "/")
-	if len(parts) != 2 {
-		return ".bin"
-	}
-	return "." + parts[1]
 }

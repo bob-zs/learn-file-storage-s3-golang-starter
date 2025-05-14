@@ -143,7 +143,6 @@ async function uploadThumbnail(videoID) {
     }
 
     await res.json();
-    console.log('Thumbnail uploaded!');
     await getVideo(videoID);
   } catch (error) {
     alert(`Error: ${error.message}`);
