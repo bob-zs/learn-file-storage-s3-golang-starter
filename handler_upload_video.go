@@ -29,7 +29,6 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusUnauthorized, "Could not find JWT", err)
 		return
 	}
-
 	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Could not validate JWT", err)
@@ -70,24 +69,22 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	}
 	defer os.Remove(tempFile.Name())
 	defer tempFile.Close()
-
 	if _, err := io.Copy(tempFile, file); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not write file to disk", err)
 		return
 	}
-
 	_, err = tempFile.Seek(0, io.SeekStart)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not reset file pointer", err)
 		return
 	}
 
-	directory := ""
 	aspectRatio, err := getVideoAspectRatio(tempFile.Name())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error determining aspect ratio", err)
 		return
 	}
+	directory := ""
 	switch aspectRatio {
 	case "16:9":
 		directory = "landscape"
@@ -96,13 +93,26 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	default:
 		directory = "other"
 	}
-
 	key := getAssetPath(mediaType)
 	key = filepath.Join(directory, key)
+
+	processedFilePath, err := processVideoForFastStart(tempFile.Name())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not process file", err)
+		return
+	}
+	defer os.Remove(processedFilePath)
+	processedFile, err := os.Open(processedFilePath)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not open processed file", err)
+		return
+	}
+	defer processedFile.Close()
+
 	_, err = cfg.s3Client.PutObject(r.Context(), &s3.PutObjectInput{
 		Bucket:      aws.String(cfg.s3Bucket),
 		Key:         aws.String(key),
-		Body:        tempFile,
+		Body:        processedFile,
 		ContentType: aws.String(mediaType),
 	})
 	if err != nil {
