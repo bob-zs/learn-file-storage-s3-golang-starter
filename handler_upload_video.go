@@ -93,7 +93,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	default:
 		directory = "other"
 	}
-	key := getAssetPath(mediaType)
+	key := createFilename(mediaType)
 	key = filepath.Join(directory, key)
 
 	processedFilePath, err := processVideoForFastStart(tempFile.Name())
@@ -120,7 +120,6 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	url := cfg.getObjectURL(key)
 	video.VideoURL = &url
 	err = cfg.db.UpdateVideo(video)
 	if err != nil {
