@@ -3,8 +3,8 @@ module github.com/bootdotdev/learn-file-storage-s3-golang-starter
 go 1.23.0
 
 require (
-	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1
-	golang.org/x/crypto v0.7.0
+	github.com/golang-jwt/jwt/v5 v5.2.2
+	golang.org/x/crypto v0.35.0
 )
 
 require (
